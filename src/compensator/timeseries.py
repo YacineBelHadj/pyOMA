@@ -1,4 +1,4 @@
-from typing import Union ,Optional
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,13 +20,15 @@ class TS_Compensator():
     def __post_init__(self):
         if self.coef is not None:
             self.poly = np.polynomial.Polynomial(self.coef)
+        else:
+            self.poly = None 
     
     def _check_coef(self):
-        """a function used to check the attribute of the compensator
+        """A function used to check the attribute of the compensator
         """
         assert (self.poly is not None), "coef has to be either instantiated, or run fit_compensator"
     
-    def evaluate(self,input:pd.Series, ts:pd.Series):
+    def evaluate(self, input:pd.Series, ts:pd.Series):
         """This function evalute the performance of the compensator 
 
         Args:
@@ -45,7 +47,7 @@ class TS_Compensator():
 
         return r2_score(ts_predicted,ts), mean_absolute_percentage_error(ts_predicted,ts) , std_ratio
         
-    def fit_compensator(self,input:pd.Series, ts:pd.Series,order:int):
+    def fit_compensator(self, input:pd.Series, ts:pd.Series, order:int):
         """ Fit a polynomal on the data 
 
         Args:
@@ -56,12 +58,12 @@ class TS_Compensator():
         Returns:
             _type_: _description_
         """
-        coef  = np.polyfit(input,ts,order)[::-1]
+        coef  = np.polyfit(input, ts, order)[::-1]
         self.poly = np.polynomial.Polynomial(coef)
-        return self.evaluate(input,ts)
+        return self.evaluate(input, ts)
             
-    def compensate(self,input:pd.Series,ts:pd.Series):
-        """perform the compensation of the ts variable regarding the input, you first have to fit the polynomial on healthy data
+    def compensate(self,input:pd.Series, ts:pd.Series):
+        """Perform the compensation of the ts variable regarding the input, you first have to fit the polynomial on healthy data
 
         Args:
             input (pd.Series): variable regarding which we perform the normalization
@@ -72,8 +74,8 @@ class TS_Compensator():
         """
         self._check_coef()
         return ts - self.poly(input)
-    def predict(self,input:pd.Series):
-        """ gives the expected variation of the targeted variable based on the predictor 
+    def predict(self, input:pd.Series):
+        """Gives the expected variation of the targeted variable based on the predictor 
 
         Args:
             input (pd.Series): predictor (temperature) variable
