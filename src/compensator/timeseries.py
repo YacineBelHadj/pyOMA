@@ -1,9 +1,8 @@
 from typing import Optional
-
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.metrics import r2_score, mean_absolute_percentage_error
+
 
 class TS_Compensator():
     """Performs Time series compensation using a single predictor and using a polynomial models
@@ -32,11 +31,13 @@ class TS_Compensator():
         """This function evalute the performance of the compensator 
 
         Args:
-            temp (pd.Series): The variable we are trying to remove it's effect on the time series
+            temp (pd.Series): The variable we are trying to remove it's
+            effect on the time series
             ts (pd.Series): The variable we are trying to normalize
 
         Returns:
-            (r2,MAPE, std_ratio): returns three commons metrics used to monitor the performance of the normalizing model
+            (r2,MAPE, std_ratio): returns three commons metrics used to monitor 
+            the performance of the normalizing model
         """
         self._check_coef()
 
