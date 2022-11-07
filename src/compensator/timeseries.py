@@ -1,45 +1,82 @@
-
-import numpy as np
-from typing import Optional
-
 from typing import Union ,Optional
-from dataclasses import dataclass
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from sklearn.metrics import r2_score, mean_absolute_percentage_error
 
-@dataclass
-class SG_Compensator():
-    coef :Optional[list]= None
-    
-    def __post_init__(self):
-        self.poly = np.polynomial.Polynomial(self.coef)
-    
-    def evaluate(self,temp:pd.Series, sg:pd.Series):
-        sg_predicted = self.poly(temp)
-        return r2_score(sg_predicted,sg), mean_absolute_percentage_error(sg_predicted,sg)
-        
-    def _check_coef(self):
-        assert (self.poly is not None), "coef has to be either instantiated, or run fit_compensator"
-        
-    def fit_compensator(self,temp:pd.Series, sg:pd.Series,order:int):
-        coef  = np.polyfit(temp,sg,order)[::-1]
-        self.poly = np.polynomial.Polynomial(coef)
-        return self.evaluate(temp,sg)
-            
-    def compensate(self,temp,sg):
-        self._check_coef()
-        return sg - self.poly(temp)
-    
-    def plot_prediction(self,temp:pd.Series,sg:pd.Series):
-        sg_predicted=self.poly(temp)
-        fig,ax=plt.subplots(ncols=2,figsize=(28,12))
-        ax[0].scatter(temp,sg,color='steelblue',label='data')
-        ax[0].scatter(temp,sg_predicted,color='red',label='model')
-        ax[0].set_ylabel('Strain')
-        ax[0].set_xlabel('Temperature °C')
-        
-        ax[1].hist((sg-sg.mean()),color='steelblue',label='data')
-        ax[1].hist((sg_predicted-sg_predicted.mean()),color='red',label='compensated')
-        ax[1].set_xlabel('Strain')
+class TS_Compensator():
+    """Performs Time series compensation using a single predictor and using a polynomial models
+    """
+    def __init__(self,coef=None):
+        """_summary_
 
-        plt.legend()
-        return ax 
+        Args:
+            coef (List or None): give the list of the polynomial coefficient from the datasheet 
+            if None, the polynomial has to be fit in a first place 
+        """
+        self.coef :Optional[list]= coef
+
+    def __post_init__(self):
+        if self.coef is not None:
+            self.poly = np.polynomial.Polynomial(self.coef)
+    
+    def _check_coef(self):
+        """a function used to check the attribute of the compensator
+        """
+        assert (self.poly is not None), "coef has to be either instantiated, or run fit_compensator"
+    
+    def evaluate(self,input:pd.Series, ts:pd.Series):
+        """This function evalute the performance of the compensator 
+
+        Args:
+            temp (pd.Series): The variable we are trying to remove it's effect on the time series
+            ts (pd.Series): The variable we are trying to normalize
+
+        Returns:
+            (r2,MAPE, std_ratio): returns three commons metrics used to monitor the performance of the normalizing model
+        """
+        self._check_coef()
+
+        ts_predicted = self.poly(input)
+        std_before_compenstation = ts.std()
+        std_after_compenstation = ts_predicted.std()
+        std_ratio = std_before_compenstation/std_after_compenstation
+
+        return r2_score(ts_predicted,ts), mean_absolute_percentage_error(ts_predicted,ts) , std_ratio
+        
+    def fit_compensator(self,input:pd.Series, ts:pd.Series,order:int):
+        """ Fit a polynomal on the data 
+
+        Args:
+            input (pd.Series): X 
+            ts (pd.Series): Y
+            order (int): order of the polynome 
+
+        Returns:
+            _type_: _description_
+        """
+        coef  = np.polyfit(input,ts,order)[::-1]
+        self.poly = np.polynomial.Polynomial(coef)
+        return self.evaluate(input,ts)
+            
+    def compensate(self,input:pd.Series,ts:pd.Series):
+        """perform the compensation of the ts variable regarding the input, you first have to fit the polynomial on healthy data
+
+        Args:
+            input (pd.Series): variable regarding which we perform the normalization
+            ts (pd.Series): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        self._check_coef()
+        return ts - self.poly(input)
+    def predict(self,input:pd.Series):
+        """ gives the expected variation of the targeted variable based on the predictor 
+
+        Args:
+            input (pd.Series): predictor (temperature) variable
+        """
+
+        return self.poly(input)
